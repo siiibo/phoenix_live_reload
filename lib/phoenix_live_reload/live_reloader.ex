@@ -89,6 +89,11 @@ defmodule Phoenix.LiveReloader do
 
   You'll also want to be sure that the configured `:patterns` for
   `live_reload` will match files in the sibling application.
+
+    * `:root` - HACK Specifies root directory of static files.
+      This part is trimmed from modified file paths and sent in
+      `assets_change` WebSocket frame.
+
   """
 
   import Plug.Conn
