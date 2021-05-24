@@ -37,11 +37,13 @@ defmodule Phoenix.LiveReloader do
     * `:patterns` - a list of patterns to trigger the live reloading.
       This option is required to enable any live reloading.
 
+    * `:script_attrs` - HACK attrs to be given to the script injected by
+      live reload. Expects a keyword list of atom keys and string values.
+
     * `:debounce` - an integer in milliseconds to wait before sending
       live reload events to the browser. Defaults to `0`.
 
     * `:iframe_attrs` - attrs to be given to the iframe injected by
-      live reload. Expects a keyword list of atom keys and string values.
 
     * `:target_window` - the window that will be reloaded, as an atom.
       Valid values are `:top` and `:parent`. An invalid value will
@@ -178,9 +180,9 @@ defmodule Phoenix.LiveReloader do
 
   defp has_head?(resp_body), do: String.contains?(resp_body, "<head")
 
-  defp reload_assets_tag(conn, endpoint, _config) do
+  defp reload_assets_tag(conn, endpoint, config) do
     path = conn.private.phoenix_endpoint.path("/phoenix/live_reload/frame#{suffix(endpoint)}")
-    attrs = [src: path, type: "text/javascript"]
+    attrs = Keyword.merge([src: path], config[:script_attrs] || [])
     IO.iodata_to_binary(["<script", attrs(attrs), "></script>"])
   end
 
