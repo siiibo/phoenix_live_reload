@@ -110,4 +110,4 @@ chan.on("assets_change", function (msg) {
     reloadStrategy(chan, msg);
   }, interval);
 });
-chan.join();
+chan.join().receive("ok", () => console.log("[PhoenixLiveReload] Connected!"));

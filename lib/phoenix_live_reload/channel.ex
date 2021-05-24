@@ -72,7 +72,7 @@ defmodule Phoenix.LiveReloader.Channel do
   end
 
   @impl true
-  def terminate(reason, _socket) do
-    Logger.debug("Browser disconnected. Reason: #{inspect(reason)}")
+  def terminate(_reason, socket) do
+    Logger.debug("Browser disconnected from live reload. Endpoint: " <> inspect(socket.endpoint))
   end
 end
