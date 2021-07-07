@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.3 (2021-07-06)
+
+* Improvements
+  * Do not attempt to fetch source map for phoenix.js
+
+## 1.3.2 (2021-06-21)
+
+* Improvements
+  * Allow reload `:target_window` to be configured
+
 ## 1.3.1 (2021-04-12)
 
 * Bug fixes
