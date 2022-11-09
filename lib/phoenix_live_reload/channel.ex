@@ -12,7 +12,6 @@ defmodule Phoenix.LiveReloader.Channel do
   @impl true
   def join("phoenix:live_reload", _msg, socket) do
     {:ok, _} = Application.ensure_all_started(:phoenix_live_reload)
-    patterns = socket.endpoint.config(:live_reload)[:patterns]
 
     if Process.whereis(:phoenix_live_reload_file_monitor) do
       Logger.debug("Browser connected to live reload! Endpoint: " <> inspect(socket.endpoint))
@@ -25,6 +24,7 @@ defmodule Phoenix.LiveReloader.Channel do
         |> assign(:patterns, config[:patterns] || [])
         |> assign(:debounce, config[:debounce] || 0)
         |> assign(:root, root)
+
       {:ok, socket}
     else
       {:error, %{message: "live reload backend not running"}}
