@@ -43,13 +43,9 @@ defmodule Phoenix.LiveReloader.Channel do
         for {path, ext} <- [{path, ext} | debounce(debounce, [ext], patterns)] do
           asset_type = remove_leading_dot(ext)
           Logger.debug("Live reload: #{Path.relative_to_cwd(path)}")
-          push(socket, "assets_change", %{asset_type: asset_type})
+          path = String.trim_leading(path, root)
+          push(socket, "assets_change", %{asset_type: asset_type, path: path})
         end
-
-        asset_type = remove_leading_dot(Path.extname(path))
-        Logger.debug("Live reload: #{Path.relative_to_cwd(path)}")
-        path = String.trim_leading(path, root)
-        push(socket, "assets_change", %{asset_type: asset_type, path: path})
       end
 
       {:noreply, socket}
