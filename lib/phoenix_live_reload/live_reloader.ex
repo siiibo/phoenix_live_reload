@@ -40,6 +40,12 @@ defmodule Phoenix.LiveReloader do
     * `:script_attrs` - HACK attrs to be given to the script injected by
       live reload. Expects a keyword list of atom keys and string values.
 
+    * `:debounce` - an integer in milliseconds to wait before sending
+      live reload events to the browser. Defaults to `0`.
+
+    * `:iframe_attrs` - attrs to be given to the iframe injected by
+      live reload. Expects a keyword list of atom keys and string values.
+
     * `:target_window` - the window that will be reloaded, as an atom.
       Valid values are `:top` and `:parent`. An invalid value will
       default to `:top`.
@@ -66,6 +72,30 @@ defmodule Phoenix.LiveReloader do
       This part is trimmed from modified file paths and sent in
       `assets_change` WebSocket frame.
 
+    * `:reload_page_on_css_changes` - If true, CSS changes will trigger a full
+      page reload like other asset types instead of the default hot reload.
+      Useful when class names are determined at runtime, for example when
+      working with CSS modules. Defaults to false.
+
+  In an umbrella app, if you want to enable live reloading based on code
+  changes in sibling applications, set the `reloadable_apps` option on your
+  endpoint to ensure the code will be recompiled, then add the dirs to
+  `:phoenix_live_reload` to trigger page reloads:
+
+      # in config/dev.exs
+      root_path =
+        __ENV__.file
+        |> Path.dirname()
+        |> Path.join("..")
+        |> Path.expand()
+
+      config :phoenix_live_reload, :dirs, [
+        Path.join([root_path, "apps", "app1"]),
+        Path.join([root_path, "apps", "app2"]),
+      ]
+
+  You'll also want to be sure that the configured `:patterns` for
+  `live_reload` will match files in the sibling application.
   """
 
   import Plug.Conn
@@ -96,6 +126,7 @@ defmodule Phoenix.LiveReloader do
     url = config[:url] || endpoint.path("/phoenix/live_reload/socket#{suffix(endpoint)}")
     interval = config[:interval] || 100
     target_window = get_target_window(config[:target_window])
+    reload_page_on_css_changes? = config[:reload_page_on_css_changes] || false
 
     conn
     |> put_resp_content_type("text/javascript")
@@ -104,6 +135,7 @@ defmodule Phoenix.LiveReloader do
       ~s[var socket = new Phoenix.Socket("#{url}");\n],
       ~s[var interval = #{interval};\n],
       ~s[var targetWindow = "#{target_window}";\n],
+      ~s[var reloadPageOnCssChanges = #{reload_page_on_css_changes?};\n],
       @script_after
     ])
     |> halt()
@@ -181,5 +213,4 @@ defmodule Phoenix.LiveReloader do
   defp get_target_window(:parent), do: "parent"
 
   defp get_target_window(_), do: "top"
-
 end
