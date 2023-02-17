@@ -24,6 +24,7 @@ defmodule Phoenix.LiveReloader.Channel do
         |> assign(:patterns, config[:patterns] || [])
         |> assign(:debounce, config[:debounce] || 0)
         |> assign(:root, root)
+        |> assign(:notify_patterns, config[:notify] || [])
 
       {:ok, socket}
     else
@@ -36,7 +37,15 @@ defmodule Phoenix.LiveReloader.Channel do
   @impl true
   def handle_info({:file_event, _pid, {path, _event}}, socket) do
     with {:stale, socket} <- check_last_modified_at(socket, path) do
+      %{
+        patterns: patterns,
+        debounce: debounce,
+        notify_patterns: notify_patterns,
+        root: root
+      } = socket.assigns
+
       %{patterns: patterns, debounce: debounce, root: root} = socket.assigns
+
       if matches_any_pattern?(path, patterns) do
         ext = Path.extname(path)
 
@@ -45,6 +54,16 @@ defmodule Phoenix.LiveReloader.Channel do
           Logger.debug("Live reload: #{Path.relative_to_cwd(path)}")
           path = String.trim_leading(path, root)
           push(socket, "assets_change", %{asset_type: asset_type, path: path})
+        end
+      end
+
+      for {topic, patterns} <- notify_patterns do
+        if matches_any_pattern?(path, patterns) do
+          Phoenix.PubSub.broadcast(
+            socket.pubsub_server,
+            to_string(topic),
+            {:phoenix_live_reload, topic, path}
+          )
         end
       end
 

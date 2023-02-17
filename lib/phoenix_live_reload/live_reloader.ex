@@ -40,11 +40,12 @@ defmodule Phoenix.LiveReloader do
     * `:script_attrs` - HACK attrs to be given to the script injected by
       live reload. Expects a keyword list of atom keys and string values.
 
+    * `:notify` - a keyword list of topics pointing to a list of patterns.
+      A mesage of the form `{:phoenix_live_reload, topic, path}` will be
+      broadcast on the topic whenever file in the list of patterns changes.
+
     * `:debounce` - an integer in milliseconds to wait before sending
       live reload events to the browser. Defaults to `0`.
-
-    * `:iframe_attrs` - attrs to be given to the iframe injected by
-      live reload. Expects a keyword list of atom keys and string values.
 
     * `:target_window` - the window that will be reloaded, as an atom.
       Valid values are `:top` and `:parent`. An invalid value will
