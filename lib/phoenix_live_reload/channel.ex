@@ -44,8 +44,6 @@ defmodule Phoenix.LiveReloader.Channel do
         root: root
       } = socket.assigns
 
-      %{patterns: patterns, debounce: debounce, root: root} = socket.assigns
-
       if matches_any_pattern?(path, patterns) do
         ext = Path.extname(path)
 
