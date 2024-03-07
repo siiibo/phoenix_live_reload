@@ -1,13 +1,13 @@
 defmodule PhoenixLiveReload.Mixfile do
   use Mix.Project
 
-  @version "1.4.1"
+  @version "1.5.1"
 
   def project do
     [
       app: :phoenix_live_reload,
       version: @version,
-      elixir: "~> 1.6",
+      elixir: "~> 1.11",
       deps: deps(),
 
       # Hex
@@ -34,15 +34,17 @@ defmodule PhoenixLiveReload.Mixfile do
   def application do
     [
       mod: {Phoenix.LiveReloader.Application, []},
-      applications: [:logger, :phoenix, :file_system]
+      extra_applications: [:logger, :phoenix, :file_system]
     ]
   end
 
   defp deps do
     [
       {:phoenix, "~> 1.4"},
-      {:ex_doc, "~> 0.19", only: :docs},
-      {:file_system, "~> 0.2.1 or ~> 0.3"},
+      {:ex_doc, "~> 0.29", only: :docs},
+      {:makeup_eex, ">= 0.1.1", only: :docs},
+      {:makeup_diff, "~> 0.1", only: :docs},
+      {:file_system, "~> 0.3 or ~> 1.0"},
       {:jason, "~> 1.0", only: :test}
     ]
   end

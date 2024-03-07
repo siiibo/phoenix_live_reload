@@ -41,7 +41,7 @@ defmodule Phoenix.LiveReloader do
       live reload. Expects a keyword list of atom keys and string values.
 
     * `:notify` - a keyword list of topics pointing to a list of patterns.
-      A mesage of the form `{:phoenix_live_reload, topic, path}` will be
+      A message of the form `{:phoenix_live_reload, topic, path}` will be
       broadcast on the topic whenever file in the list of patterns changes.
 
     * `:debounce` - an integer in milliseconds to wait before sending
@@ -77,6 +77,11 @@ defmodule Phoenix.LiveReloader do
       page reload like other asset types instead of the default hot reload.
       Useful when class names are determined at runtime, for example when
       working with CSS modules. Defaults to false.
+
+    * `:web_console_logger` - If true, the live reloader will log messages
+      to the web console in your browser. Defaults to false.
+      *Note*: Requires Elixir v1.15+ and your appplication javascript bundle will need
+      to enable logs. See the README for more information.
 
   In an umbrella app, if you want to enable live reloading based on code
   changes in sibling applications, set the `reloadable_apps` option on your

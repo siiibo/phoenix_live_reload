@@ -2,8 +2,18 @@ defmodule Phoenix.LiveReloader.Application do
   use Application
   require Logger
 
+  alias Phoenix.LiveReloader.WebConsoleLogger
+
   def start(_type, _args) do
-    children = [%{id: __MODULE__, start: {__MODULE__, :start_link, []}}]
+    # note we always attach and start the logger as :phoenix_live_reload should only
+    # be started in dev via user's `only: :dev` entry.
+    WebConsoleLogger.attach_logger()
+
+    children = [
+      WebConsoleLogger,
+      %{id: __MODULE__, start: {__MODULE__, :start_link, []}}
+    ]
+
     Supervisor.start_link(children, strategy: :one_for_one)
   end
 
@@ -29,7 +39,7 @@ defmodule Phoenix.LiveReloader.Application do
         {:ok, pid}
 
       other ->
-        Logger.warn("""
+        Logger.warning("""
         Could not start Phoenix live-reload because we cannot listen to the file system.
         You don't need to worry! This is an optional feature used during development to
         refresh your browser when you save files and it does not affect production.

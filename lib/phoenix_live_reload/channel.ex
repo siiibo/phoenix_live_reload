@@ -9,6 +9,10 @@ defmodule Phoenix.LiveReloader.Channel do
   use Phoenix.Channel
   require Logger
 
+  alias Phoenix.LiveReloader.WebConsoleLogger
+
+  @logs :logs
+
   @impl true
   def join("phoenix:live_reload", _msg, socket) do
     {:ok, _} = Application.ensure_all_started(:phoenix_live_reload)
@@ -16,6 +20,11 @@ defmodule Phoenix.LiveReloader.Channel do
     if Process.whereis(:phoenix_live_reload_file_monitor) do
       Logger.debug("Browser connected to live reload! Endpoint: " <> inspect(socket.endpoint))
       FileSystem.subscribe(:phoenix_live_reload_file_monitor)
+
+      if web_console_logger_enabled?(socket) do
+        WebConsoleLogger.subscribe(@logs)
+      end
+
       config = socket.endpoint.config(:live_reload)
       root = Path.expand(config[:root] || "")
 
@@ -25,8 +34,9 @@ defmodule Phoenix.LiveReloader.Channel do
         |> assign(:debounce, config[:debounce] || 0)
         |> assign(:root, root)
         |> assign(:notify_patterns, config[:notify] || [])
+        |> assign(:deps_paths, deps_paths())
 
-      {:ok, socket}
+      {:ok, join_info(), socket}
     else
       {:error, %{message: "live reload backend not running"}}
     end
@@ -50,6 +60,7 @@ defmodule Phoenix.LiveReloader.Channel do
         for {path, ext} <- [{path, ext} | debounce(debounce, [ext], patterns)] do
           asset_type = remove_leading_dot(ext)
           Logger.debug("Live reload: #{Path.relative_to_cwd(path)}")
+          IO.inspect(path)
           path = String.trim_leading(path, root)
           push(socket, "assets_change", %{asset_type: asset_type, path: path})
         end
@@ -66,6 +77,28 @@ defmodule Phoenix.LiveReloader.Channel do
       end
 
       {:noreply, socket}
+    end
+  end
+
+  def handle_info({@logs, %{level: level, msg: msg, meta: meta}}, socket) do
+    push(socket, "log", %{
+      level: to_string(level),
+      msg: msg,
+      file: meta[:file],
+      line: meta[:line]
+    })
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_in("full_path", %{"rel_path" => rel_path, "app" => app}, socket) do
+    case socket.assigns.deps_paths do
+      %{^app => dep_path} ->
+        {:reply, {:ok, %{full_path: Path.join(dep_path, rel_path)}}, socket}
+
+      %{} ->
+        {:reply, {:ok, %{full_path: Path.join(File.cwd!(), rel_path)}}, socket}
     end
   end
 
@@ -126,5 +159,26 @@ defmodule Phoenix.LiveReloader.Channel do
   @impl true
   def terminate(_reason, socket) do
     Logger.debug("Browser disconnected from live reload. Endpoint: " <> inspect(socket.endpoint))
+  end
+
+  defp web_console_logger_enabled?(socket) do
+    socket.endpoint.config(:live_reload)[:web_console_logger] == true
+  end
+
+  defp join_info do
+    if url = System.get_env("PLUG_EDITOR") do
+      %{editor_url: url}
+    else
+      %{}
+    end
+  end
+
+  defp deps_paths do
+    # TODO: Use `Code.loaded?` on Elixir v1.15+
+    if :erlang.module_loaded(Mix.Project) do
+      for {app, path} <- Mix.Project.deps_paths(), into: %{}, do: {to_string(app), path}
+    else
+      %{}
+    end
   end
 end
