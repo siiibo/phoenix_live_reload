@@ -10,31 +10,31 @@ let jsStrategy = (chan, msg) => {
   console.info("[HMR] JS file updated", msg);
   // HACK When a JS file updated, we search for corresponding <script> tag with [data-hmr] attribute.
   // If found, we try HMR (via doHMR() function), otherwise reload the page.
-  let hmrTargetQuery = `script[src*='${msg.path}'][data-hmr]`;
+  let hmrTargetQuery = `script[src*='${msg.path}'][data-hmr]`
   if (
     window.parent.document.querySelector(hmrTargetQuery) &&
     window.parent.doHMR
   ) {
-    console.info(`[HMR] Initiating HMR... (${msg.path})`);
+    console.info(`[HMR] Initiating HMR... (${msg.path})`)
     // Migrated from https://github.com/klazuka/elm-hot/blob/master/test/client.js
-    let hmrTargetReq = new Request(msg.path);
-    hmrTargetReq.cache = "no-cache";
+    let hmrTargetReq = new Request(msg.path)
+    hmrTargetReq.cache = "no-cache"
     fetch(hmrTargetReq).then((res) => {
       if (res.ok) {
         res.text().then((newModule) => {
-          window.parent.doHMR(newModule);
-          console.info(`[HMR] Done! (${msg.path})`);
+          window.parent.doHMR(newModule)
+          console.info(`[HMR] Done! (${msg.path})`)
         });
       } else {
         // Debug here
-        console.error(`[HMR] Fetch failed (${msg.path}):`, res.statusText);
+        console.error(`[HMR] Fetch failed (${msg.path}):`, res.statusText)
       }
-    });
+    })
   } else {
-    console.info(`[HMR] Not-applicable. Reloading page... (${msg.path})`);
-    window.top.location.reload();
+    console.info(`[HMR] Not-applicable. Reloading page... (${msg.path})`)
+    window.top.location.reload()
   }
-};
+}
 
 //
 // Patched functions end
