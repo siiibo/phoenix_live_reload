@@ -111,7 +111,7 @@ class LiveReloader {
     this.channel = socket.channel("phoenix:live_reload", {})
     this.channel.on("assets_change", msg => {
       let reloadStrategy = reloadStrategies[msg.asset_type] || reloadStrategies.page
-      setTimeout(() => reloadStrategy(this.channel), interval)
+      setTimeout(() => reloadStrategy(this.channel, msg), interval)
     })
     this.channel.on("log", ({msg, level}) => this.logsEnabled && this.log(level, msg))
     this.channel.join().receive("ok", ({editor_url}) => {
