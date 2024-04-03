@@ -2,6 +2,7 @@ defmodule Phoenix.LiveReloader.WebConsoleLogger do
   @moduledoc false
 
   @registry Phoenix.LiveReloader.WebConsoleLoggerRegistry
+  @compile {:no_warn_undefined, {Logger, :default_formatter, 0}}
 
   def attach_logger do
     if function_exported?(Logger, :default_formatter, 0) do
@@ -28,8 +29,11 @@ defmodule Phoenix.LiveReloader.WebConsoleLogger do
     msg = IO.iodata_to_binary(iodata)
 
     Registry.dispatch(@registry, :all, fn entries ->
-      for {pid, prefix} <- entries,
-          do: send(pid, {prefix, %{level: level, msg: msg, meta: meta}})
+      event = %{level: level, msg: msg, file: meta[:file], line: meta[:line]}
+
+      for {pid, prefix} <- entries do
+        send(pid, {prefix, event})
+      end
     end)
   end
 end

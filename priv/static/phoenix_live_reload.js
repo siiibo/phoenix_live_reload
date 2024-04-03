@@ -72,7 +72,7 @@ let cssStrategy = () => {
     "link[rel=stylesheet]:not([data-no-reload]):not([data-pending-removal])"
   )
 
-  ([].slice).call(reloadableLinkElements)
+  Array.from(reloadableLinkElements)
     .filter(link => link.href)
     .forEach(link => buildFreshUrl(link))
 
@@ -168,9 +168,9 @@ class LiveReloader {
   }
 
   log(level, str){
-    let levelColor = {debug: "cyan", info: "inherit", error: "inherit"}[level]
-    let consoleFunc = level === "debug" ? "info" : level
-    console[consoleFunc](`%c📡 [${level}] ${str}`, `color: ${levelColor};`)
+    let levelColor = level === "debug" ? "darkcyan" : "inherit"
+    let consoleFunc = level === "error" ? level : "log"
+    console[consoleFunc](`%c📡 ${str}`, `color: ${levelColor};`)
   }
 
   closestCallerFileLine(node){

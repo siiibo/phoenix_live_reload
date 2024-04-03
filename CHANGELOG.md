@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.3 (2024-03-27)
+
+* Bug fixes
+  * Fix warnings on earlier Elixir versions
+  * Use darkcyan for log levels
+
+## 1.5.2 (2024-03-11)
+
+* Bug fixes
+  * Fix CSS updates failing with errors
+  * Fix logging errors caused by unknown server log types
+
 ## 1.5.1 (2024-02-29)
 
 * Bug fixes
