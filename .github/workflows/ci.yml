@@ -25,28 +25,28 @@ jobs:
       image: hexpm/elixir:${{ matrix.image }}
 
     steps:
-      - name: Install inotify-tools
-        run: apt update && apt -y install inotify-tools
+    - name: Install inotify-tools
+      run: apt update && apt -y install inotify-tools
 
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Hex and Rebar setup
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
+    - name: Hex and Rebar setup
+      run: |
+        mix local.hex --force
+        mix local.rebar --force
 
-      - name: Restore deps and _build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            deps
-            _build
-          key: deps-${{ runner.os }}-${{ matrix.image }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            deps-${{ runner.os }}-${{ matrix.image }}
-      - name: Install dependencies
-        run: mix deps.get --only test
+    - name: Restore deps and _build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          deps
+          _build
+        key: deps-${{ runner.os }}-${{ matrix.image }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ matrix.image }}
+    - name: Install dependencies
+      run: mix deps.get --only test
 
-      - name: Run tests
-        run: mix test
+    - name: Run tests
+      run: mix test
