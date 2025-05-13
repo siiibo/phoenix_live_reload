@@ -1,3 +1,7 @@
+#
+# Patch this file to enable HMR; Hot Module Reloading for other asset types
+#
+
 defmodule Phoenix.LiveReloader do
   @moduledoc """
   Router for live-reload detection in development.
@@ -33,15 +37,15 @@ defmodule Phoenix.LiveReloader do
     * `:patterns` - a list of patterns to trigger the live reloading.
       This option is required to enable any live reloading.
 
+    * `:script_attrs` - HACK attrs to be given to the script injected by
+      live reload. Expects a keyword list of atom keys and string values.
+
     * `:notify` - a keyword list of topics pointing to a list of patterns.
       A message of the form `{:phoenix_live_reload, topic, path}` will be
       broadcast on the topic whenever file in the list of patterns changes.
 
     * `:debounce` - an integer in milliseconds to wait before sending
       live reload events to the browser. Defaults to `0`.
-
-    * `:iframe_attrs` - attrs to be given to the iframe injected by
-      live reload. Expects a keyword list of atom keys and string values.
 
     * `:target_window` - the window that will be reloaded, as an atom.
       Valid values are `:top` and `:parent`. Defaults to `:parent`.
@@ -63,6 +67,10 @@ defmodule Phoenix.LiveReloader do
             socket "/phoenix/live_reload/socket/proxied/app/path", Phoenix.LiveReloader.Socket
             ...
           end
+
+    * `:root` - HACK Specifies root directory of static files.
+      This part is trimmed from modified file paths and sent in
+      `assets_change` WebSocket frame.
 
     * `:reload_page_on_css_changes` - If true, CSS changes will trigger a full
       page reload like other asset types instead of the default hot reload.
@@ -103,17 +111,14 @@ defmodule Phoenix.LiveReloader do
   @external_resource phoenix_path
   @external_resource reload_path
 
-  @html_before """
-  <!DOCTYPE html>
-  <html><body>
-  <script>
-  #{File.read!(phoenix_path) |> String.replace("//# sourceMappingURL=", "// ")}
+  # HACK Patching below to insert reload script as <script> in <head> rather than <iframe> in <body>
+  # since <iframe> in <body> sometimes breaks Elm's virtual DOM after HMR happened!
+  @script_before """
+  #{File.read!(phoenix_path)}
   """
 
-  @html_after """
+  @script_after """
   #{File.read!(reload_path)}
-  </script>
-  </body></html>
   """
 
   def init(opts) do
@@ -129,14 +134,14 @@ defmodule Phoenix.LiveReloader do
     reload_page_on_css_changes? = config[:reload_page_on_css_changes] || false
 
     conn
-    |> put_resp_content_type("text/html")
+    |> put_resp_content_type("text/javascript")
     |> send_resp(200, [
-      @html_before,
+      @script_before,
       ~s[var socket = new Phoenix.Socket("#{url}");\n],
       ~s[var interval = #{interval};\n],
       ~s[var targetWindow = "#{target_window}";\n],
       ~s[var reloadPageOnCssChanges = #{reload_page_on_css_changes?};\n],
-      @html_after
+      @script_after
     ])
     |> halt()
   end
@@ -157,10 +162,9 @@ defmodule Phoenix.LiveReloader do
       if conn.resp_body != nil and html?(conn) do
         resp_body = IO.iodata_to_binary(conn.resp_body)
 
-        if has_body?(resp_body) and :code.is_loaded(endpoint) do
-          {head, [last]} = Enum.split(String.split(resp_body, "</body>"), -1)
-          head = Enum.intersperse(head, "</body>")
-          body = [head, reload_assets_tag(conn, endpoint, config), "</body>" | last]
+        if has_head?(resp_body) and :code.is_loaded(endpoint) do
+          [head | rest] = String.split(resp_body, "</head>")
+          body = [head, reload_assets_tag(conn, endpoint, config), "</head>" | rest]
           put_in(conn.resp_body, body)
         else
           conn
@@ -178,30 +182,12 @@ defmodule Phoenix.LiveReloader do
     end
   end
 
-  defp has_body?(resp_body), do: String.contains?(resp_body, "<body")
+  defp has_head?(resp_body), do: String.contains?(resp_body, "<head")
 
   defp reload_assets_tag(conn, endpoint, config) do
     path = conn.private.phoenix_endpoint.path("/phoenix/live_reload/frame#{suffix(endpoint)}")
-
-    attrs =
-      Keyword.merge(
-        [hidden: true, height: 0, width: 0, src: path],
-        Keyword.get(config, :iframe_attrs, [])
-      )
-
-    attrs =
-      if Keyword.has_key?(config, :iframe_class) do
-        IO.warn(
-          "The :iframe_class for Phoenix LiveReloader is deprecated, " <>
-            "please remove it or use :iframe_attrs instead"
-        )
-
-        Keyword.put_new(attrs, :class, config[:iframe_class])
-      else
-        attrs
-      end
-
-    IO.iodata_to_binary(["<iframe", attrs(attrs), "></iframe>"])
+    attrs = Keyword.merge([src: path], config[:script_attrs] || [])
+    IO.iodata_to_binary(["<script", attrs(attrs), "></script>"])
   end
 
   defp attrs(attrs) do

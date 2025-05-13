@@ -1,3 +1,45 @@
+//
+// Patch this file to enable HMR; Hot Module Reloading for other asset types
+//
+
+//
+// Patched functions begin
+//
+
+let jsStrategy = (chan, msg) => {
+  console.info("[HMR] JS file updated", msg);
+  // HACK When a JS file updated, we search for corresponding <script> tag with [data-hmr] attribute.
+  // If found, we try HMR (via doHMR() function), otherwise reload the page.
+  let hmrTargetQuery = `script[src*='${msg.path}'][data-hmr]`
+  if (
+    window.parent.document.querySelector(hmrTargetQuery) &&
+    window.parent.doHMR
+  ) {
+    console.info(`[HMR] Initiating HMR... (${msg.path})`)
+    // Migrated from https://github.com/klazuka/elm-hot/blob/master/test/client.js
+    let hmrTargetReq = new Request(msg.path)
+    hmrTargetReq.cache = "no-cache"
+    fetch(hmrTargetReq).then((res) => {
+      if (res.ok) {
+        res.text().then((newModule) => {
+          window.parent.doHMR(newModule)
+          console.info(`[HMR] Done! (${msg.path})`)
+        });
+      } else {
+        // Debug here
+        console.error(`[HMR] Fetch failed (${msg.path}):`, res.statusText)
+      }
+    })
+  } else {
+    console.info(`[HMR] Not-applicable. Reloading page... (${msg.path})`)
+    window.top.location.reload()
+  }
+}
+
+//
+// Patched functions end
+//
+
 let buildFreshUrl = (link) => {
   let date = Math.round(Date.now() / 1000).toString()
   let url = link.href.replace(/(\&|\\?)vsn=\d*/, "")
@@ -35,7 +77,7 @@ let cssStrategy = () => {
     .forEach(link => buildFreshUrl(link))
 
   repaint()
-};
+}
 
 let pageStrategy = channel => {
   channel.off("assets_change")
@@ -43,6 +85,7 @@ let pageStrategy = channel => {
 }
 
 let reloadStrategies = {
+  js: jsStrategy,
   css: reloadPageOnCssChanges ? pageStrategy : cssStrategy,
   page: pageStrategy
 };
@@ -68,7 +111,7 @@ class LiveReloader {
     this.channel = socket.channel("phoenix:live_reload", {})
     this.channel.on("assets_change", msg => {
       let reloadStrategy = reloadStrategies[msg.asset_type] || reloadStrategies.page
-      setTimeout(() => reloadStrategy(this.channel), interval)
+      setTimeout(() => reloadStrategy(this.channel, msg), interval)
     })
     this.channel.on("log", ({msg, level}) => this.logsEnabled && this.log(level, msg))
     this.channel.join().receive("ok", ({editor_url}) => {
